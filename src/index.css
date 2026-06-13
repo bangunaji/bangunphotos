@@ -1,0 +1,208 @@
+@import url('https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap');
+
+:root {
+  --primary: #6ab5a6; /* Teal */
+  --primary-hover: #589e90;
+  --secondary: #f0c27b; /* Warm Yellow */
+  --accent: #d96d6d; /* Soft Red */
+  --background: #fdfaf6; /* Off-white paper */
+  --surface: #ffffff;
+  --text-main: #232323; /* Dark outline color */
+  --text-muted: #4a4a4a;
+  --border-color: #232323;
+  --radius-lg: 16px;
+  --radius-md: 12px;
+  --radius-sm: 8px;
+  --border-width: 3px;
+  --shadow-offset: 6px;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Patrick Hand', cursive;
+  background-color: var(--background);
+  color: var(--text-main);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden;
+  font-size: 1.2rem;
+  background-image: radial-gradient(var(--border-color) 1px, transparent 1px);
+  background-size: 30px 30px;
+  background-color: var(--background);
+}
+
+#root {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  width: 100%;
+}
+
+/* Redefining glass to match the doodle/neo-brutalist style without renaming classes in JSX */
+.glass {
+  background: var(--surface);
+  border: var(--border-width) solid var(--border-color);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-offset) var(--shadow-offset) 0px var(--border-color);
+  transition: all 0.2s ease;
+}
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  font-family: inherit;
+  font-weight: bold;
+  font-size: 1.25rem;
+  letter-spacing: 1px;
+  border-radius: var(--radius-md);
+  border: var(--border-width) solid var(--border-color);
+  cursor: pointer;
+  transition: all 0.1s ease;
+  box-shadow: 4px 4px 0px var(--border-color);
+}
+
+.btn-primary {
+  background: var(--primary);
+  color: var(--text-main);
+}
+
+.btn-primary:hover {
+  transform: translate(2px, 2px);
+  box-shadow: 2px 2px 0px var(--border-color);
+  background: var(--primary-hover);
+}
+
+.btn-primary:active {
+  transform: translate(4px, 4px);
+  box-shadow: 0px 0px 0px var(--border-color);
+}
+
+.btn-outline {
+  background: var(--secondary);
+  color: var(--text-main);
+}
+
+.btn-outline:hover {
+  transform: translate(2px, 2px);
+  box-shadow: 2px 2px 0px var(--border-color);
+  background: #e6b25f;
+}
+
+.btn-outline:active {
+  transform: translate(4px, 4px);
+  box-shadow: 0px 0px 0px var(--border-color);
+}
+
+/* Typography */
+h1 {
+  font-size: 3.5rem;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--accent);
+  text-shadow: 2px 2px 0px var(--border-color);
+  margin-bottom: 1rem;
+  letter-spacing: 2px;
+}
+
+h2 {
+  font-size: 2.2rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+  color: var(--text-main);
+}
+
+h3 {
+  font-size: 1.8rem;
+  color: var(--primary);
+  text-shadow: 1px 1px 0px var(--border-color);
+}
+
+p {
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+/* Main Container */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+  width: 100%;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Layout Utilities */
+.flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.flex-col {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.4s ease forwards;
+}
+
+@keyframes pulse {
+  0% { transform: scale(1) rotate(-2deg); }
+  50% { transform: scale(1.05) rotate(2deg); }
+  100% { transform: scale(1) rotate(-2deg); }
+}
+
+.animate-pulse {
+  animation: pulse 2s infinite;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 12px;
+}
+::-webkit-scrollbar-track {
+  background: var(--background);
+  border-left: var(--border-width) solid var(--border-color);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--primary);
+  border: var(--border-width) solid var(--border-color);
+  border-radius: 6px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--primary-hover);
+}
+
+/* Ensure inputs in admin look consistent */
+input[type="text"] {
+  font-family: 'Patrick Hand', cursive;
+  font-size: 1.2rem;
+  padding: 0.75rem;
+  border-radius: var(--radius-sm);
+  border: var(--border-width) solid var(--border-color) !important;
+  background: var(--surface) !important;
+  color: var(--text-main) !important;
+  box-shadow: inset 2px 2px 0px rgba(0,0,0,0.05);
+}
+input[type="text"]::placeholder {
+  color: #999;
+}
