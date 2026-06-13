@@ -371,10 +371,13 @@ const Admin = () => {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                // Background image or Checkerboard for transparency
-                background: isOverlayTemplate(t)
-                  ? (t.bgUrl ? `url(${t.bgUrl}) center/cover no-repeat` : `repeating-conic-gradient(#d4d4d4 0% 25%, #fff 0% 50%) 50% / 16px 16px`)
-                  : 'var(--surface)',
+                // Background image or color or Checkerboard for transparency
+                backgroundColor: t.bgColor || '#ffffff',
+                backgroundImage: isOverlayTemplate(t)
+                  ? (t.bgUrl ? `url(${t.bgUrl})` : (!t.bgColor || t.bgColor === '#ffffff' ? `repeating-conic-gradient(#d4d4d4 0% 25%, #fff 0% 50%) 50% / 16px 16px` : 'none'))
+                  : 'none',
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
               }}>
                 {isOverlayTemplate(t) ? (
                   <img

@@ -84,9 +84,12 @@ const TemplateSelector = ({ onSelect }) => {
               justifyContent: 'center',
               border: '2px solid var(--border-color)',
               // Background image or Checkerboard for overlay templates
-              background: isOverlayTemplate(t)
-                ? (t.bgUrl ? `url(${t.bgUrl}) center/cover no-repeat` : `repeating-conic-gradient(#e5e5e5 0% 25%, #fff 0% 50%) 50% / 14px 14px`)
-                : 'var(--surface)',
+              backgroundColor: t.bgColor || '#ffffff',
+              backgroundImage: isOverlayTemplate(t)
+                ? (t.bgUrl ? `url(${t.bgUrl})` : (!t.bgColor || t.bgColor === '#ffffff' ? `repeating-conic-gradient(#e5e5e5 0% 25%, #fff 0% 50%) 50% / 14px 14px` : 'none'))
+                : 'none',
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
             }}>
               {isOverlayTemplate(t) ? (
                 <img
