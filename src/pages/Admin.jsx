@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Upload, Trash2, ImagePlus, Eye, EyeOff } from 'lucide-react';
+import { Upload, Trash2, ImagePlus, Eye, EyeOff, LogOut } from 'lucide-react';
 import FrameEditor from '../components/FrameEditor';
+import { db, auth } from '../firebase';
+import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
+import { signOut } from 'firebase/auth';
 
 const Admin = () => {
   const [templates, setTemplates] = useState([]);
@@ -10,21 +13,25 @@ const Admin = () => {
   const [selectedBgColor, setSelectedBgColor] = useState('#ffffff');
   const [showEditor, setShowEditor] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [editingTemplateId, setEditingTemplateId] = useState(null);
   const overlayInputRef = useRef(null);
   const bgInputRef = useRef(null);
 
-  useEffect(() => {
-    const saved = localStorage.getItem('photobooth_templates');
-    if (saved) {
-      setTemplates(JSON.parse(saved));
-    } else {
-      const defaultTemplates = [
-        { id: '1', name: 'Classic Strip', bgUrl: 'https://images.unsplash.com/photo-1550684848-fac1c5b4e853?auto=format&fit=crop&w=800&q=80' }
-      ];
-      setTemplates(defaultTemplates);
-      localStorage.setItem('photobooth_templates', JSON.stringify(defaultTemplates));
+  const fetchTemplates = async () => {
+    try {
+      const querySnapshot = await getDocs(collection(db, "templates"));
+      const fetchedTemplates = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setTemplates(fetchedTemplates);
+    } catch (error) {
+      console.error("Error fetching templates:", error);
+    } finally {
+      setIsLoading(false);
     }
+  };
+
+  useEffect(() => {
+    fetchTemplates();
   }, []);
 
   const handleFileUpload = (e, type) => {
@@ -102,27 +109,27 @@ const Admin = () => {
 
       if (editingTemplateId) {
         // Editing existing template frames
-        const updated = templates.map(t =>
-          t.id === editingTemplateId
-            ? { ...t, frames, overlayUrl: finalOverlayUrl, bgUrl: finalBgUrl, bgColor: selectedBgColor, name: newTemplateName.trim() }
-            : t
-        );
-        localStorage.setItem('photobooth_templates', JSON.stringify(updated));
-        setTemplates(updated);
-      } else {
-        // New template
-        const newTemplate = {
-          id: Date.now().toString(),
+        const templateRef = doc(db, "templates", editingTemplateId);
+        await updateDoc(templateRef, {
           name: newTemplateName.trim(),
           overlayUrl: finalOverlayUrl,
           bgUrl: finalBgUrl,
           bgColor: selectedBgColor,
-          frames,
-        };
-        const updated = [...templates, newTemplate];
-        localStorage.setItem('photobooth_templates', JSON.stringify(updated));
-        setTemplates(updated);
+          frames: frames
+        });
+      } else {
+        // New template
+        await addDoc(collection(db, "templates"), {
+          name: newTemplateName.trim(),
+          overlayUrl: finalOverlayUrl,
+          bgUrl: finalBgUrl,
+          bgColor: selectedBgColor,
+          frames: frames,
+          createdAt: Date.now()
+        });
       }
+      
+      await fetchTemplates();
 
       // Reset
       setNewTemplateName('');
@@ -141,11 +148,15 @@ const Admin = () => {
     }
   };
 
-  const handleDelete = (id) => {
+  const handleDelete = async (id) => {
     if (!confirm('Yakin hapus template ini?')) return;
-    const updated = templates.filter(t => t.id !== id);
-    setTemplates(updated);
-    localStorage.setItem('photobooth_templates', JSON.stringify(updated));
+    try {
+      await deleteDoc(doc(db, "templates", id));
+      setTemplates(templates.filter(t => t.id !== id));
+    } catch (error) {
+      console.error("Error deleting template:", error);
+      alert('Gagal menghapus template');
+    }
   };
 
   const handleEditFrames = (template) => {
@@ -172,11 +183,29 @@ const Admin = () => {
     if (bgInputRef.current) bgInputRef.current.value = '';
   };
 
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+    } catch (error) {
+      console.error("Error signing out:", error);
+    }
+  };
+
   const isOverlayTemplate = (t) => !!t.overlayUrl && !!t.frames;
+
+  if (isLoading) {
+    return <div style={{ textAlign: 'center', marginTop: '5rem' }}>Loading templates...</div>;
+  }
 
   return (
     <div className="container animate-fade-in">
-      <h2>Admin Dashboard</h2>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+        <h2>Admin Dashboard</h2>
+        <button onClick={handleLogout} className="btn btn-outline" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem' }}>
+          <LogOut size={18} />
+          Keluar
+        </button>
+      </div>
       <p style={{ marginBottom: '2rem' }}>Kelola template photobooth di sini.</p>
 
       {/* Add New Template */}

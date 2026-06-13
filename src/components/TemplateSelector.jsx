@@ -1,23 +1,44 @@
 import React, { useState, useEffect } from 'react';
 import { ImagePlus, Layers } from 'lucide-react';
+import { db } from '../firebase';
+import { collection, getDocs } from 'firebase/firestore';
 
 const TemplateSelector = ({ onSelect }) => {
   const [templates, setTemplates] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const saved = localStorage.getItem('photobooth_templates');
-    if (saved) {
-      setTemplates(JSON.parse(saved));
-    } else {
-      const defaultTemplates = [
-        { id: '1', name: 'Classic Strip', bgUrl: 'https://images.unsplash.com/photo-1550684848-fac1c5b4e853?auto=format&fit=crop&w=800&q=80' }
-      ];
-      setTemplates(defaultTemplates);
-      localStorage.setItem('photobooth_templates', JSON.stringify(defaultTemplates));
-    }
+    const fetchTemplates = async () => {
+      try {
+        const querySnapshot = await getDocs(collection(db, "templates"));
+        const fetchedTemplates = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        
+        if (fetchedTemplates.length > 0) {
+          setTemplates(fetchedTemplates);
+        } else {
+          // Fallback if database is empty
+          setTemplates([
+            { id: '1', name: 'Classic Strip', bgUrl: 'https://images.unsplash.com/photo-1550684848-fac1c5b4e853?auto=format&fit=crop&w=800&q=80' }
+          ]);
+        }
+      } catch (error) {
+        console.error("Error fetching templates:", error);
+        setTemplates([
+          { id: '1', name: 'Classic Strip', bgUrl: 'https://images.unsplash.com/photo-1550684848-fac1c5b4e853?auto=format&fit=crop&w=800&q=80' }
+        ]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchTemplates();
   }, []);
 
   const isOverlayTemplate = (t) => !!t.overlayUrl && !!t.frames;
+
+  if (isLoading) {
+    return <div style={{ textAlign: 'center', marginTop: '5rem' }}>Loading templates...</div>;
+  }
 
   return (
     <div className="flex-col flex-center">
