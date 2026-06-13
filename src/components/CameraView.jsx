@@ -60,13 +60,23 @@ const CameraView = ({ onComplete, targetCount = 3 }) => {
       }
       setCountdown('SNAP!');
 
-      // 3. Capture the image frame
+      const MAX_CAPTURE_WIDTH = 800;
+      const vWidth = videoRef.current.videoWidth;
+      const vHeight = videoRef.current.videoHeight;
+      const aspectRatio = vHeight / vWidth;
+
       const canvas = document.createElement('canvas');
-      canvas.width = videoRef.current.videoWidth;
-      canvas.height = videoRef.current.videoHeight;
+      canvas.width = Math.min(MAX_CAPTURE_WIDTH, vWidth);
+      canvas.height = canvas.width * aspectRatio;
+
       const ctx = canvas.getContext('2d');
+      // For flipped video feed, we must flip the context before drawing to match what user sees
+      ctx.translate(canvas.width, 0);
+      ctx.scale(-1, 1);
       ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
-      const imageDataUrl = canvas.toDataURL('image/jpeg', 0.9);
+      
+      // Reduce quality to 0.85 to save massive amounts of RAM
+      const imageDataUrl = canvas.toDataURL('image/jpeg', 0.85);
 
       // Flash effect simulation
       setTimeout(() => setCountdown(null), 200);
