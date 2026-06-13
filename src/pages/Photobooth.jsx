@@ -18,6 +18,7 @@ const Photobooth = () => {
   const [selectedTemplate, setSelectedTemplate] = useState(null);
   const [photos, setPhotos] = useState([]); // [{ image: dataUrl, video: blobUrl }]
   const [selectedFilter, setSelectedFilter] = useState('none');
+  const [resultTab, setResultTab] = useState('photo');
 
   const handleTemplateSelect = (template) => {
     setSelectedTemplate(template);
@@ -97,28 +98,44 @@ const Photobooth = () => {
       {currentStep === STEPS.RESULT && (
         <div className="flex-col flex-center">
           <h2 style={{ marginBottom: '1.5rem' }}>Your Photo Strip!</h2>
-          <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap', justifyContent: 'center', width: '100%' }}>
-            {/* Live Strip View */}
-            <div className="glass" style={{ padding: '2rem', display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1, minWidth: '300px' }}>
-              <h3 style={{ marginBottom: '1rem', textAlign: 'center' }}>Live Video Strip</h3>
-              <VideoStrip 
-                videos={photos.map(p => p.video)} 
-                template={selectedTemplate} 
-                filter={selectedFilter} 
-                bgColor={selectedTemplate?.bgColor || '#ffffff'}
-              />
-            </div>
+          <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem' }}>
+            <button 
+              className={`btn ${resultTab === 'photo' ? 'btn-primary' : 'btn-outline'}`}
+              onClick={() => setResultTab('photo')}
+            >
+              Foto Biasa (PNG)
+            </button>
+            <button 
+              className={`btn ${resultTab === 'video' ? 'btn-primary' : 'btn-outline'}`}
+              onClick={() => setResultTab('video')}
+            >
+              Foto Bergerak (GIF)
+            </button>
+          </div>
 
-            {/* Final Strip Download View */}
-            <div className="glass" style={{ padding: '2rem', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-              <PhotoStrip 
-                photos={photos.map(p => p.image)} 
-                template={selectedTemplate} 
-                filter={selectedFilter} 
-                mode="download"
-                bgColor={selectedTemplate?.bgColor || '#ffffff'}
-              />
-            </div>
+          <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
+            {resultTab === 'video' ? (
+              <div className="glass animate-fade-in" style={{ padding: '2rem', display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1, maxWidth: '500px' }}>
+                <h3 style={{ marginBottom: '1rem', textAlign: 'center' }}>Live Video Strip</h3>
+                <VideoStrip 
+                  videos={photos.map(p => p.video)} 
+                  template={selectedTemplate} 
+                  filter={selectedFilter} 
+                  bgColor={selectedTemplate?.bgColor || '#ffffff'}
+                />
+              </div>
+            ) : (
+              <div className="glass animate-fade-in" style={{ padding: '2rem', display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1, maxWidth: '500px' }}>
+                <h3 style={{ marginBottom: '1rem', textAlign: 'center' }}>Foto Final</h3>
+                <PhotoStrip 
+                  photos={photos.map(p => p.image)} 
+                  template={selectedTemplate} 
+                  filter={selectedFilter} 
+                  mode="download"
+                  bgColor={selectedTemplate?.bgColor || '#ffffff'}
+                />
+              </div>
+            )}
           </div>
           
           <button className="btn btn-outline" onClick={() => window.location.reload()} style={{ marginTop: '2rem' }}>

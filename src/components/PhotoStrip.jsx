@@ -71,7 +71,7 @@ const PhotoStrip = ({ photos, template, filter, mode = 'preview', bgColor = '#ff
         }
 
         // Set canvas size to match overlay image aspect ratio
-        const MAX_WIDTH = 800;
+        const MAX_WIDTH = 600; // Dikurangi dari 800 ke 600 agar tidak crash di HP
         const aspectRatio = overlayImg.naturalHeight / overlayImg.naturalWidth;
         const canvasWidth = Math.min(MAX_WIDTH, overlayImg.naturalWidth);
         const canvasHeight = canvasWidth * aspectRatio;
