@@ -16,43 +16,6 @@ const PhotoStrip = ({ photos, template, filter, mode = 'preview', bgColor = '#ff
 
     const isOverlayTemplate = !!template.overlayUrl && !!template.frames;
 
-    const uploadToImgbb = async (base64Image) => {
-      // Only auto-upload in download/result mode
-      if (mode !== 'download') return;
-      
-      const apiKey = import.meta.env.VITE_IMGBB_API_KEY;
-      if (!apiKey || apiKey === 'your_api_key_here') {
-        console.warn("IMGBB API Key not configured in .env");
-        return;
-      }
-
-      setIsUploading(true);
-      try {
-        // Remove the data:image/png;base64, prefix for imgbb
-        const base64Data = base64Image.split(',')[1];
-        
-        const formData = new FormData();
-        formData.append('image', base64Data);
-        formData.append('key', apiKey);
-
-        const response = await fetch('https://api.imgbb.com/1/upload', {
-          method: 'POST',
-          body: formData
-        });
-
-        const data = await response.json();
-        if (data.success) {
-          setImgbbUrl(data.data.url);
-        } else {
-          console.error("IMGBB Upload Error:", data);
-        }
-      } catch (err) {
-        console.error("Failed to upload to IMGBB", err);
-      } finally {
-        setIsUploading(false);
-      }
-    };
-
     const drawStrip = async () => {
       if (isOverlayTemplate) {
         // === NEW OVERLAY MODE ===
@@ -204,21 +167,44 @@ const PhotoStrip = ({ photos, template, filter, mode = 'preview', bgColor = '#ff
         }
       }
 
-      // Generate download URL
-      const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
-      setDownloadUrl(dataUrl);
+      // Generate download URL and upload to IMGBB using Blob to save memory
+      canvas.toBlob(async (blob) => {
+        if (!blob) return;
+        const blobUrl = URL.createObjectURL(blob);
+        setDownloadUrl(blobUrl);
 
-      // Auto Upload to IMGBB
-      uploadToImgbb(dataUrl);
+        if (mode === 'download') {
+          confetti({
+            particleCount: 100,
+            spread: 70,
+            origin: { y: 0.6 },
+            colors: ['#6366f1', '#ec4899', '#f8fafc']
+          });
+        }
 
-      if (mode === 'download') {
-        confetti({
-          particleCount: 100,
-          spread: 70,
-          origin: { y: 0.6 },
-          colors: ['#6366f1', '#ec4899', '#f8fafc']
-        });
-      }
+        // Auto Upload to IMGBB directly with Blob
+        try {
+          const formData = new FormData();
+          formData.append('image', blob, 'photostrip.jpg');
+          formData.append('key', apiKey);
+
+          const response = await fetch('https://api.imgbb.com/1/upload', {
+            method: 'POST',
+            body: formData
+          });
+
+          const data = await response.json();
+          if (data.success) {
+            setImgbbUrl(data.data.url);
+          } else {
+            console.error("IMGBB Upload Error:", data);
+          }
+        } catch (err) {
+          console.error("Failed to upload to IMGBB", err);
+        } finally {
+          setIsUploading(false);
+        }
+      }, 'image/jpeg', 0.9);
     };
 
     drawStrip();
