@@ -35,7 +35,7 @@ const VideoStrip = ({ videos, template, filter, bgColor = '#ffffff' }) => {
       }
 
       if (tempImg.complete && tempImg.naturalWidth > 0) {
-        const MAX_WIDTH = 360; // Dikurangi dari 480 ke 360 agar RAM HP kuat render GIF
+        const MAX_WIDTH = 480;
         const aspectRatio = tempImg.naturalHeight / tempImg.naturalWidth;
         STRIP_WIDTH = Math.min(MAX_WIDTH, tempImg.naturalWidth);
         STRIP_HEIGHT = Math.round(STRIP_WIDTH * aspectRatio);
