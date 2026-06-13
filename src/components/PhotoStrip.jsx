@@ -183,6 +183,15 @@ const PhotoStrip = ({ photos, template, filter, mode = 'preview', bgColor = '#ff
         }
 
         // Auto Upload to IMGBB directly with Blob
+        if (mode !== 'download') return;
+
+        const apiKey = import.meta.env.VITE_IMGBB_API_KEY;
+        if (!apiKey || apiKey === 'your_api_key_here') {
+          console.warn("IMGBB API Key not configured in .env");
+          return;
+        }
+
+        setIsUploading(true);
         try {
           const formData = new FormData();
           formData.append('image', blob, 'photostrip.jpg');
