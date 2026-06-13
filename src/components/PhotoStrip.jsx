@@ -34,7 +34,7 @@ const PhotoStrip = ({ photos, template, filter, mode = 'preview', bgColor = '#ff
         }
 
         // Set canvas size to match overlay image aspect ratio
-        const MAX_WIDTH = 600; // Dikurangi dari 800 ke 600 agar tidak crash di HP
+        const MAX_WIDTH = 800;
         const aspectRatio = overlayImg.naturalHeight / overlayImg.naturalWidth;
         const canvasWidth = Math.min(MAX_WIDTH, overlayImg.naturalWidth);
         const canvasHeight = canvasWidth * aspectRatio;
@@ -213,7 +213,7 @@ const PhotoStrip = ({ photos, template, filter, mode = 'preview', bgColor = '#ff
         } finally {
           setIsUploading(false);
         }
-      }, 'image/jpeg', 0.9);
+      }, 'image/jpeg', 0.95);
     };
 
     drawStrip();

@@ -60,7 +60,7 @@ const CameraView = ({ onComplete, targetCount = 3 }) => {
       }
       setCountdown('SNAP!');
 
-      const MAX_CAPTURE_WIDTH = 800;
+      const MAX_CAPTURE_WIDTH = 1080;
       const vWidth = videoRef.current.videoWidth;
       const vHeight = videoRef.current.videoHeight;
       const aspectRatio = vHeight / vWidth;
@@ -75,8 +75,8 @@ const CameraView = ({ onComplete, targetCount = 3 }) => {
       ctx.scale(-1, 1);
       ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
       
-      // Reduce quality to 0.85 to save massive amounts of RAM
-      const imageDataUrl = canvas.toDataURL('image/jpeg', 0.85);
+      // Bump quality to 0.95 to balance RAM usage and image sharpness
+      const imageDataUrl = canvas.toDataURL('image/jpeg', 0.95);
 
       // Flash effect simulation
       setTimeout(() => setCountdown(null), 200);
