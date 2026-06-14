@@ -34,6 +34,7 @@ const FrameEditor = ({ imageUrl, bgUrl, isSaving, initialFrames = [], onSave }) 
       y: 10 + (frames.length * 25) % 60,
       w: 70,
       h: 20,
+      rotation: 0,
     };
     setFrames([...frames, newFrame]);
     setActiveFrame(frames.length);
@@ -173,7 +174,7 @@ const FrameEditor = ({ imageUrl, bgUrl, isSaving, initialFrames = [], onSave }) 
         fontSize: '0.95rem',
       }}>
         <strong>Cara pakai:</strong> Klik "Tambah Frame" lalu drag kotak biru ke posisi area foto di template.
-        Tarik sudut kanan bawah untuk resize. Klik frame untuk memilih, lalu bisa dihapus.
+        Tarik sudut kanan bawah untuk resize. Klik frame untuk memilih — lalu atur <strong>rotasi</strong> menggunakan slider di bawah.
       </div>
 
       {/* Editor Area */}
@@ -223,6 +224,8 @@ const FrameEditor = ({ imageUrl, bgUrl, isSaving, initialFrames = [], onSave }) 
               cursor: dragState?.type === 'move' ? 'grabbing' : 'grab',
               zIndex: activeFrame === i ? 20 : 10,
               transition: dragState ? 'none' : 'border-color 0.15s, background 0.15s',
+              transform: `rotate(${frame.rotation || 0}deg)`,
+              transformOrigin: 'center center',
             }}
             onClick={(e) => {
               e.stopPropagation();
@@ -307,6 +310,44 @@ const FrameEditor = ({ imageUrl, bgUrl, isSaving, initialFrames = [], onSave }) 
         ))}
       </div>
 
+      {/* Active Frame Controls */}
+      {activeFrame !== null && frames[activeFrame] && (
+        <div style={{
+          marginTop: '1.5rem',
+          padding: '1rem',
+          background: 'var(--surface)',
+          borderRadius: 'var(--radius-md)',
+          border: '2px solid var(--border-color)',
+          maxWidth: '500px',
+          margin: '1.5rem auto 0'
+        }}>
+          <h4 style={{ margin: '0 0 0.75rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            Pengaturan Foto {activeFrame + 1}
+          </h4>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <label style={{ fontWeight: '600', fontSize: '0.95rem' }}>Rotasi (Miring):</label>
+            <input 
+              type="range" 
+              min="-180" 
+              max="180" 
+              value={frames[activeFrame].rotation || 0}
+              onChange={(e) => {
+                const val = parseInt(e.target.value, 10);
+                setFrames(prev => {
+                  const updated = [...prev];
+                  updated[activeFrame] = { ...updated[activeFrame], rotation: val };
+                  return updated;
+                });
+              }}
+              style={{ flex: 1, cursor: 'pointer' }}
+            />
+            <span style={{ minWidth: '45px', textAlign: 'right', fontWeight: 'bold' }}>
+              {frames[activeFrame].rotation || 0}°
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* Frame list summary */}
       {frames.length > 0 && (
         <div style={{
@@ -336,6 +377,14 @@ const FrameEditor = ({ imageUrl, bgUrl, isSaving, initialFrames = [], onSave }) 
               <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>
                 {Math.round(frame.w)}% × {Math.round(frame.h)}%
               </span>
+              {(frame.rotation || 0) !== 0 && (
+                <>
+                  <br />
+                  <span style={{ color: '#2563eb', fontSize: '0.75rem', fontWeight: 'bold' }}>
+                    ↻ {frame.rotation}°
+                  </span>
+                </>
+              )}
             </div>
           ))}
         </div>

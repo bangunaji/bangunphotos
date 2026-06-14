@@ -280,7 +280,7 @@ const Admin = () => {
                 <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold', fontSize: '1rem' }}>
                   Warna Background
                 </label>
-                <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
                   {[
                     { label: 'Putih', value: '#ffffff' },
                     { label: 'Hitam', value: '#000000' },
@@ -290,14 +290,31 @@ const Admin = () => {
                     <button
                       key={bg.value}
                       type="button"
-                      className={`btn ${selectedBgColor === bg.value ? 'btn-primary' : 'btn-outline'}`}
+                      className={`btn ${selectedBgColor.toLowerCase() === bg.value ? 'btn-primary' : 'btn-outline'}`}
                       onClick={() => setSelectedBgColor(bg.value)}
                       style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
                     >
-                      <div style={{ width: '16px', height: '16px', borderRadius: '50%', backgroundColor: bg.value, border: '1px solid #ccc' }} />
+                      <div style={{ width: '16px', height: '16px', borderRadius: '50%', backgroundColor: bg.value, border: '1px solid var(--border-color)' }} />
                       {bg.label}
                     </button>
                   ))}
+                  
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginLeft: '0.5rem' }}>
+                    <input
+                      type="color"
+                      value={selectedBgColor}
+                      onChange={(e) => setSelectedBgColor(e.target.value)}
+                      style={{ width: '36px', height: '36px', padding: 0, border: 'none', borderRadius: '4px', cursor: 'pointer', background: 'transparent' }}
+                      title="Custom Color"
+                    />
+                    <input
+                      type="text"
+                      value={selectedBgColor}
+                      onChange={(e) => setSelectedBgColor(e.target.value)}
+                      placeholder="#ffffff"
+                      style={{ width: '90px', padding: '0.5rem', borderRadius: '0.5rem', border: '2px solid var(--border-color)', fontSize: '0.9rem', background: 'var(--surface)', color: 'var(--text-main)' }}
+                    />
+                  </div>
                 </div>
               </div>
             )}

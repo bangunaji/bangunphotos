@@ -98,10 +98,19 @@ const PhotoStrip = ({ photos, template, filter, mode = 'preview', bgColor = '#ff
             sy = (photoImg.naturalHeight - sh) / 2;
           }
 
-          // Mirror horizontally
-          ctx.translate(fx + fw, fy);
+          const cx = fx + fw / 2;
+          const cy = fy + fh / 2;
+          const rot = frame.rotation || 0;
+
+          // Translate to center, rotate, then apply mirroring
+          ctx.translate(cx, cy);
+          if (rot) {
+            ctx.rotate((rot * Math.PI) / 180);
+          }
           ctx.scale(-1, 1);
-          ctx.drawImage(photoImg, sx, sy, sw, sh, 0, 0, fw, fh);
+          
+          // Draw image centered at origin
+          ctx.drawImage(photoImg, sx, sy, sw, sh, -fw / 2, -fh / 2, fw, fh);
 
           ctx.restore();
         }
