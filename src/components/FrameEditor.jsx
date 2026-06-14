@@ -1,32 +1,30 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Plus, Trash2, Save, Move, Maximize2 } from 'lucide-react';
+import { Plus, Trash2, Save, Move, Maximize2, RotateCw } from 'lucide-react';
 
 const MIN_FRAME_SIZE = 5; // Minimum 5% width/height
+
+// RotateHandle SVG icon (circular arrow like Canva)
+const RotateIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M21.5 2v6h-6" />
+    <path d="M21.34 15.57a10 10 0 1 1-.57-8.38" />
+  </svg>
+);
 
 const FrameEditor = ({ imageUrl, bgUrl, isSaving, initialFrames = [], onSave }) => {
   const containerRef = useRef(null);
   const [frames, setFrames] = useState(initialFrames);
-  const [activeFrame, setActiveFrame] = useState(null); // index
+  const [activeFrame, setActiveFrame] = useState(null);
   const [dragState, setDragState] = useState(null);
-  // dragState: { type: 'move' | 'resize', frameIndex, startX, startY, startFrame }
+  // dragState: { type: 'move' | 'resize' | 'rotate', frameIndex, startX, startY, startFrame, startAngle }
 
-  // Get container bounds
+  // Get the rendered image rect (used for % conversion)
   const getContainerRect = useCallback(() => {
     if (!containerRef.current) return null;
     const img = containerRef.current.querySelector('.frame-editor-image');
     if (!img) return null;
     return img.getBoundingClientRect();
   }, []);
-
-  // Convert pixel position to percentage
-  const pxToPercent = useCallback((px, py) => {
-    const rect = getContainerRect();
-    if (!rect) return { x: 0, y: 0 };
-    return {
-      x: ((px - rect.left) / rect.width) * 100,
-      y: ((py - rect.top) / rect.height) * 100,
-    };
-  }, [getContainerRect]);
 
   const addFrame = () => {
     const newFrame = {
@@ -46,7 +44,14 @@ const FrameEditor = ({ imageUrl, bgUrl, isSaving, initialFrames = [], onSave }) 
     setActiveFrame(null);
   };
 
-  const handlePointerDown = (e, index, type) => {
+  // Calculate angle (in degrees) from center point to cursor
+  const getAngle = useCallback((cx, cy, mouseX, mouseY) => {
+    const dx = mouseX - cx;
+    const dy = mouseY - cy;
+    return Math.atan2(dy, dx) * (180 / Math.PI);
+  }, []);
+
+  const handlePointerDown = useCallback((e, index, type) => {
     e.preventDefault();
     e.stopPropagation();
     setActiveFrame(index);
@@ -54,14 +59,36 @@ const FrameEditor = ({ imageUrl, bgUrl, isSaving, initialFrames = [], onSave }) 
     const clientX = e.touches ? e.touches[0].clientX : e.clientX;
     const clientY = e.touches ? e.touches[0].clientY : e.clientY;
 
-    setDragState({
-      type,
-      frameIndex: index,
-      startX: clientX,
-      startY: clientY,
-      startFrame: { ...frames[index] },
-    });
-  };
+    if (type === 'rotate') {
+      // For rotate: find the pixel center of the frame to compute angle
+      const rect = getContainerRect();
+      if (!rect) return;
+
+      const frame = frames[index];
+      const frameCenterX = rect.left + ((frame.x + frame.w / 2) / 100) * rect.width;
+      const frameCenterY = rect.top + ((frame.y + frame.h / 2) / 100) * rect.height;
+
+      const startAngle = getAngle(frameCenterX, frameCenterY, clientX, clientY);
+
+      setDragState({
+        type: 'rotate',
+        frameIndex: index,
+        frameCenterX,
+        frameCenterY,
+        startAngle,
+        startRotation: frame.rotation || 0,
+        startFrame: { ...frames[index] },
+      });
+    } else {
+      setDragState({
+        type,
+        frameIndex: index,
+        startX: clientX,
+        startY: clientY,
+        startFrame: { ...frames[index] },
+      });
+    }
+  }, [frames, getContainerRect, getAngle]);
 
   const handlePointerMove = useCallback((e) => {
     if (!dragState) return;
@@ -70,34 +97,48 @@ const FrameEditor = ({ imageUrl, bgUrl, isSaving, initialFrames = [], onSave }) 
     const clientX = e.touches ? e.touches[0].clientX : e.clientX;
     const clientY = e.touches ? e.touches[0].clientY : e.clientY;
 
+    const { startFrame, frameIndex, type } = dragState;
+
+    if (type === 'rotate') {
+      const { frameCenterX, frameCenterY, startAngle, startRotation } = dragState;
+      const currentAngle = getAngle(frameCenterX, frameCenterY, clientX, clientY);
+      let delta = currentAngle - startAngle;
+      let newRotation = startRotation + delta;
+      // Normalize to -180..180
+      newRotation = ((newRotation + 180) % 360) - 180;
+
+      setFrames(prev => {
+        const updated = [...prev];
+        updated[frameIndex] = { ...startFrame, rotation: Math.round(newRotation) };
+        return updated;
+      });
+      return;
+    }
+
     const rect = getContainerRect();
     if (!rect) return;
 
     const deltaXPercent = ((clientX - dragState.startX) / rect.width) * 100;
     const deltaYPercent = ((clientY - dragState.startY) / rect.height) * 100;
 
-    const { startFrame, frameIndex, type } = dragState;
-
     setFrames(prev => {
       const updated = [...prev];
       if (type === 'move') {
         let newX = startFrame.x + deltaXPercent;
         let newY = startFrame.y + deltaYPercent;
-        // Clamp
         newX = Math.max(0, Math.min(100 - startFrame.w, newX));
         newY = Math.max(0, Math.min(100 - startFrame.h, newY));
         updated[frameIndex] = { ...startFrame, x: newX, y: newY };
       } else if (type === 'resize') {
         let newW = startFrame.w + deltaXPercent;
         let newH = startFrame.h + deltaYPercent;
-        // Clamp
         newW = Math.max(MIN_FRAME_SIZE, Math.min(100 - startFrame.x, newW));
         newH = Math.max(MIN_FRAME_SIZE, Math.min(100 - startFrame.y, newH));
         updated[frameIndex] = { ...startFrame, w: newW, h: newH };
       }
       return updated;
     });
-  }, [dragState, getContainerRect]);
+  }, [dragState, getContainerRect, getAngle]);
 
   const handlePointerUp = useCallback(() => {
     setDragState(null);
@@ -125,6 +166,9 @@ const FrameEditor = ({ imageUrl, bgUrl, isSaving, initialFrames = [], onSave }) 
     }
     onSave(frames);
   };
+
+  const isRotating = dragState?.type === 'rotate';
+  const isResizing = dragState?.type === 'resize';
 
   return (
     <div style={{ width: '100%' }}>
@@ -173,8 +217,9 @@ const FrameEditor = ({ imageUrl, bgUrl, isSaving, initialFrames = [], onSave }) 
         marginBottom: '1rem',
         fontSize: '0.95rem',
       }}>
-        <strong>Cara pakai:</strong> Klik "Tambah Frame" lalu drag kotak biru ke posisi area foto di template.
-        Tarik sudut kanan bawah untuk resize. Klik frame untuk memilih — lalu atur <strong>rotasi</strong> menggunakan slider di bawah.
+        <strong>Cara pakai:</strong> Klik "Tambah Frame" → drag kotak untuk pindahkan.
+        Tarik <strong>sudut kanan bawah</strong> untuk resize.
+        Drag <strong>ikon putar (↻) di atas-tengah</strong> frame untuk memutar — seperti di Canva!
       </div>
 
       {/* Editor Area */}
@@ -187,6 +232,8 @@ const FrameEditor = ({ imageUrl, bgUrl, isSaving, initialFrames = [], onSave }) 
           margin: '0 auto',
           userSelect: 'none',
           touchAction: 'none',
+          // Extend overflow so rotate handle above frame is visible
+          overflow: 'visible',
         }}
         onClick={() => setActiveFrame(null)}
       >
@@ -203,150 +250,186 @@ const FrameEditor = ({ imageUrl, bgUrl, isSaving, initialFrames = [], onSave }) 
             borderRadius: 'var(--radius-md)',
             border: '3px solid var(--border-color)',
             boxShadow: '4px 4px 0px var(--border-color)',
-            // Checkerboard background or optional bgUrl
-            background: bgUrl ? `url(${bgUrl}) center/cover no-repeat` : `repeating-conic-gradient(#d4d4d4 0% 25%, #fff 0% 50%) 50% / 20px 20px`,
+            background: bgUrl
+              ? `url(${bgUrl}) center/cover no-repeat`
+              : `repeating-conic-gradient(#d4d4d4 0% 25%, #fff 0% 50%) 50% / 20px 20px`,
           }}
         />
 
         {/* Frame overlays */}
-        {frames.map((frame, i) => (
-          <div
-            key={i}
-            style={{
-              position: 'absolute',
-              left: `${frame.x}%`,
-              top: `${frame.y}%`,
-              width: `${frame.w}%`,
-              height: `${frame.h}%`,
-              border: `3px ${activeFrame === i ? 'solid' : 'dashed'} ${activeFrame === i ? '#2563eb' : 'rgba(37, 99, 235, 0.7)'}`,
-              background: activeFrame === i ? 'rgba(37, 99, 235, 0.15)' : 'rgba(37, 99, 235, 0.08)',
-              borderRadius: '4px',
-              cursor: dragState?.type === 'move' ? 'grabbing' : 'grab',
-              zIndex: activeFrame === i ? 20 : 10,
-              transition: dragState ? 'none' : 'border-color 0.15s, background 0.15s',
-              transform: `rotate(${frame.rotation || 0}deg)`,
-              transformOrigin: 'center center',
-            }}
-            onClick={(e) => {
-              e.stopPropagation();
-              setActiveFrame(i);
-            }}
-            onMouseDown={(e) => handlePointerDown(e, i, 'move')}
-            onTouchStart={(e) => handlePointerDown(e, i, 'move')}
-          >
-            {/* Frame label */}
-            <div style={{
-              position: 'absolute',
-              top: '4px',
-              left: '4px',
-              background: '#2563eb',
-              color: '#fff',
-              padding: '2px 8px',
-              borderRadius: '4px',
-              fontSize: '0.8rem',
-              fontWeight: 'bold',
-              pointerEvents: 'none',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px',
-            }}>
-              <Move size={12} />
-              Foto {i + 1}
-            </div>
+        {frames.map((frame, i) => {
+          const isActive = activeFrame === i;
+          const rot = frame.rotation || 0;
 
-            {/* Delete button (visible when active) */}
-            {activeFrame === i && (
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  removeFrame(i);
-                }}
+          return (
+            <div
+              key={i}
+              style={{
+                position: 'absolute',
+                left: `${frame.x}%`,
+                top: `${frame.y}%`,
+                width: `${frame.w}%`,
+                height: `${frame.h}%`,
+                transform: `rotate(${rot}deg)`,
+                transformOrigin: 'center center',
+                zIndex: isActive ? 20 : 10,
+              }}
+              onClick={(e) => { e.stopPropagation(); setActiveFrame(i); }}
+            >
+              {/* Main box */}
+              <div
                 style={{
                   position: 'absolute',
+                  inset: 0,
+                  border: `3px ${isActive ? 'solid' : 'dashed'} ${isActive ? '#2563eb' : 'rgba(37, 99, 235, 0.7)'}`,
+                  background: isActive ? 'rgba(37, 99, 235, 0.15)' : 'rgba(37, 99, 235, 0.08)',
+                  borderRadius: '4px',
+                  cursor: dragState?.type === 'move' ? 'grabbing' : 'grab',
+                  transition: dragState ? 'none' : 'border-color 0.15s, background 0.15s',
+                }}
+                onMouseDown={(e) => handlePointerDown(e, i, 'move')}
+                onTouchStart={(e) => handlePointerDown(e, i, 'move')}
+              >
+                {/* Frame label */}
+                <div style={{
+                  position: 'absolute',
                   top: '4px',
-                  right: '4px',
-                  background: 'var(--accent)',
+                  left: '4px',
+                  background: '#2563eb',
                   color: '#fff',
-                  border: '2px solid var(--border-color)',
-                  borderRadius: '50%',
+                  padding: '2px 8px',
+                  borderRadius: '4px',
+                  fontSize: '0.8rem',
+                  fontWeight: 'bold',
+                  pointerEvents: 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                }}>
+                  <Move size={12} />
+                  Foto {i + 1}
+                </div>
+
+                {/* Rotation degree badge (when rotated) */}
+                {rot !== 0 && (
+                  <div style={{
+                    position: 'absolute',
+                    bottom: '4px',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    background: 'rgba(0,0,0,0.65)',
+                    color: '#fff',
+                    padding: '1px 6px',
+                    borderRadius: '999px',
+                    fontSize: '0.72rem',
+                    fontWeight: 'bold',
+                    pointerEvents: 'none',
+                    whiteSpace: 'nowrap',
+                  }}>
+                    {rot}°
+                  </div>
+                )}
+
+                {/* Delete button (active only) */}
+                {isActive && (
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); removeFrame(i); }}
+                    style={{
+                      position: 'absolute',
+                      top: '4px',
+                      right: '4px',
+                      background: 'var(--accent)',
+                      color: '#fff',
+                      border: '2px solid #fff',
+                      borderRadius: '50%',
+                      width: '28px',
+                      height: '28px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      padding: 0,
+                      boxShadow: '0 2px 6px rgba(0,0,0,0.3)',
+                      zIndex: 30,
+                    }}
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                )}
+
+                {/* Resize handle (bottom-right) */}
+                <div
+                  style={{
+                    position: 'absolute',
+                    bottom: '-6px',
+                    right: '-6px',
+                    width: '22px',
+                    height: '22px',
+                    background: '#2563eb',
+                    border: '2px solid #fff',
+                    borderRadius: '5px',
+                    cursor: 'nwse-resize',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 30,
+                    boxShadow: '0 2px 6px rgba(0,0,0,0.3)',
+                  }}
+                  onMouseDown={(e) => handlePointerDown(e, i, 'resize')}
+                  onTouchStart={(e) => handlePointerDown(e, i, 'resize')}
+                >
+                  <Maximize2 size={11} color="#fff" />
+                </div>
+              </div>
+
+              {/* ===== ROTATE HANDLE (Canva-style) ===== */}
+              {/* Line stem from top-center of frame */}
+              <div
+                style={{
+                  position: 'absolute',
+                  top: '-28px',
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                  width: '2px',
+                  height: '22px',
+                  background: isActive ? '#2563eb' : 'rgba(37, 99, 235, 0.5)',
+                  pointerEvents: 'none',
+                }}
+              />
+              {/* Rotate button circle */}
+              <div
+                style={{
+                  position: 'absolute',
+                  top: '-52px',
+                  left: '50%',
+                  transform: 'translateX(-50%)',
                   width: '28px',
                   height: '28px',
+                  background: isActive ? '#2563eb' : '#fff',
+                  border: `2px solid ${isActive ? '#fff' : '#2563eb'}`,
+                  borderRadius: '50%',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  cursor: 'pointer',
-                  padding: 0,
-                  boxShadow: 'none',
+                  cursor: isRotating && dragState?.frameIndex === i ? 'grabbing' : 'grab',
+                  zIndex: 30,
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+                  color: isActive ? '#fff' : '#2563eb',
+                  transition: 'background 0.15s, border-color 0.15s, color 0.15s',
+                  userSelect: 'none',
                 }}
+                onMouseDown={(e) => handlePointerDown(e, i, 'rotate')}
+                onTouchStart={(e) => handlePointerDown(e, i, 'rotate')}
+                onClick={(e) => e.stopPropagation()}
+                title="Putar frame"
               >
-                <Trash2 size={14} />
-              </button>
-            )}
-
-            {/* Resize handle (bottom-right corner) */}
-            <div
-              style={{
-                position: 'absolute',
-                bottom: '-4px',
-                right: '-4px',
-                width: '20px',
-                height: '20px',
-                background: '#2563eb',
-                border: '2px solid #fff',
-                borderRadius: '4px',
-                cursor: 'nwse-resize',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                zIndex: 25,
-              }}
-              onMouseDown={(e) => handlePointerDown(e, i, 'resize')}
-              onTouchStart={(e) => handlePointerDown(e, i, 'resize')}
-            >
-              <Maximize2 size={10} color="#fff" />
+                <RotateIcon />
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
-
-      {/* Active Frame Controls */}
-      {activeFrame !== null && frames[activeFrame] && (
-        <div style={{
-          marginTop: '1.5rem',
-          padding: '1rem',
-          background: 'var(--surface)',
-          borderRadius: 'var(--radius-md)',
-          border: '2px solid var(--border-color)',
-          maxWidth: '500px',
-          margin: '1.5rem auto 0'
-        }}>
-          <h4 style={{ margin: '0 0 0.75rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            Pengaturan Foto {activeFrame + 1}
-          </h4>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            <label style={{ fontWeight: '600', fontSize: '0.95rem' }}>Rotasi (Miring):</label>
-            <input 
-              type="range" 
-              min="-180" 
-              max="180" 
-              value={frames[activeFrame].rotation || 0}
-              onChange={(e) => {
-                const val = parseInt(e.target.value, 10);
-                setFrames(prev => {
-                  const updated = [...prev];
-                  updated[activeFrame] = { ...updated[activeFrame], rotation: val };
-                  return updated;
-                });
-              }}
-              style={{ flex: 1, cursor: 'pointer' }}
-            />
-            <span style={{ minWidth: '45px', textAlign: 'right', fontWeight: 'bold' }}>
-              {frames[activeFrame].rotation || 0}°
-            </span>
-          </div>
-        </div>
-      )}
 
       {/* Frame list summary */}
       {frames.length > 0 && (
@@ -356,7 +439,7 @@ const FrameEditor = ({ imageUrl, bgUrl, isSaving, initialFrames = [], onSave }) 
           gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
           gap: '0.5rem',
           maxWidth: '500px',
-          margin: '1rem auto 0',
+          margin: '1.5rem auto 0',
         }}>
           {frames.map((frame, i) => (
             <div
