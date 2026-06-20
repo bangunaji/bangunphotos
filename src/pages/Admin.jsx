@@ -400,6 +400,9 @@ const Admin = () => {
                   <img
                     src={t.overlayUrl}
                     alt={t.name}
+                    crossOrigin="anonymous"
+                    referrerPolicy="no-referrer"
+                    onError={(e) => { e.currentTarget.style.display = 'none'; }}
                     style={{
                       width: '100%',
                       height: '100%',

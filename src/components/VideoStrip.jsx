@@ -28,7 +28,7 @@ const VideoStrip = ({ videos, template, filter, bgColor = '#ffffff' }) => {
         await new Promise((resolve, reject) => {
           tempImg.onload = resolve;
           tempImg.onerror = reject;
-          tempImg.src = template.overlayUrl;
+          tempImg.src = template.overlayUrl + (template.overlayUrl.includes('?') ? '&' : '?') + 'cb=' + Date.now();
         });
       } catch (e) {
         // Handle error silently
@@ -71,7 +71,7 @@ const VideoStrip = ({ videos, template, filter, bgColor = '#ffffff' }) => {
         await new Promise((resolve, reject) => {
           bgImg.onload = resolve;
           bgImg.onerror = reject;
-          bgImg.src = template.bgUrl;
+          bgImg.src = template.bgUrl + (template.bgUrl.includes('?') ? '&' : '?') + 'cb=' + Date.now();
         });
       } catch (e) {
         bgImg = null;
@@ -231,7 +231,21 @@ const VideoStrip = ({ videos, template, filter, bgColor = '#ffffff' }) => {
           }
         }, function(obj) {
           if (!obj.error) {
-            setDownloadUrl(obj.image);
+            // Convert Base64 data URL to Blob to prevent download issues on mobile devices
+            const dataURItoBlob = (dataURI) => {
+              const byteString = atob(dataURI.split(',')[1]);
+              const mimeString = dataURI.split(',')[0].split(':')[1].split(';')[0];
+              const ab = new ArrayBuffer(byteString.length);
+              const ia = new Uint8Array(ab);
+              for (let i = 0; i < byteString.length; i++) {
+                ia[i] = byteString.charCodeAt(i);
+              }
+              return new Blob([ab], { type: mimeString });
+            };
+            const blob = dataURItoBlob(obj.image);
+            const blobUrl = URL.createObjectURL(blob);
+            
+            setDownloadUrl(blobUrl);
             setIsRecording(false);
             setProgress(100);
             confetti({

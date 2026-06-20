@@ -26,7 +26,8 @@ const PhotoStrip = ({ photos, template, filter, mode = 'preview', bgColor = '#ff
           await new Promise((resolve, reject) => {
             overlayImg.onload = resolve;
             overlayImg.onerror = reject;
-            overlayImg.src = template.overlayUrl;
+            // Prevent CORS cache issue by appending a timestamp
+            overlayImg.src = template.overlayUrl + (template.overlayUrl.includes('?') ? '&' : '?') + 'cb=' + Date.now();
           });
         } catch (e) {
           console.error("Failed to load overlay image", e);
@@ -54,7 +55,7 @@ const PhotoStrip = ({ photos, template, filter, mode = 'preview', bgColor = '#ff
             await new Promise((resolve, reject) => {
               bgImg.onload = resolve;
               bgImg.onerror = reject;
-              bgImg.src = template.bgUrl;
+              bgImg.src = template.bgUrl + (template.bgUrl.includes('?') ? '&' : '?') + 'cb=' + Date.now();
             });
             ctx.drawImage(bgImg, 0, 0, canvasWidth, canvasHeight);
           } catch (e) {
@@ -139,7 +140,7 @@ const PhotoStrip = ({ photos, template, filter, mode = 'preview', bgColor = '#ff
             await new Promise((resolve, reject) => {
               bgImg.onload = resolve;
               bgImg.onerror = reject;
-              bgImg.src = template.bgUrl;
+              bgImg.src = template.bgUrl + (template.bgUrl.includes('?') ? '&' : '?') + 'cb=' + Date.now();
             });
             ctx.drawImage(bgImg, 0, 0, STRIP_WIDTH, STRIP_HEIGHT);
           } catch (e) {
